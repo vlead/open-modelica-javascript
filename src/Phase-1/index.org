@@ -1,0 +1,59 @@
+#+TITLE: Transpiling OpenModelica Models to JavaScript
+#+AUTHOR: Keshav Krihsnamurti
+#+DATE: [2017-06-15 THU]
+#+PROPERTY: results output
+#+PROPERTY: exports code
+#+SETUPFILE: ../org-templates/level-1.org 
+
+* Phase 1 - Converting C to JavaScript
+C ( or rather =clang= generated llvm ) can be converted to javascript with the
+help of emscripten
+** Emscripten
+Emscripten allows for virtually zero hassle-porting of c to javascript.
+It has few limitations though
+*** Emscripten Limitations
+**** Code that is multi-threaded and uses shared state.
+JavaScript is single threaded but it emulates multi threading  (webworkers),
+but they cannot share state Å\ instead they pass messages.
+**** Code that relies on x86 alignment behavior.
+ x86 allows unaligned reads and writes (so for example you can read a 16-bit
+value from a non-even address), but other architectures do not (ARM will raise
+SIGILL).
+For Emscripten-generated JavaScript the behavior is undefined. 
+**** Code that uses low-level features of the native environment.
+for example native stack manipulation in conjunction with setjmp/longjmp (it
+supports proper setjmp/longjmp,i.e., jumping down the stack,
+but not jumping up to an unwound stack, which is undefined behavior).
+*** Code that compiles but might run slowly 
+**** 64-bit int variables.
+Mathematical operations (+, -, *, /) are slow because they are emulated
+(bitwise operations are reasonably fast).
+JavaScript does not have a native 64-bit int type so this is unavoidable.
+**** C++ Exceptions.
+In JavaScript such code generally makes the JavaScript engine turn off various
+optimizations. For that reason exceptions are turned off by default in -O1 and
+above.
+To re-enable them, run =emcc -s DISABLE_EXCEPTION_CATCHING=0= (see
+src/settings.js).
+*** API Limitations
+The browser environment and JavaScript are different from the native
+environments that C and C++ typically run in.
+These differences impose some limitations on how native APIs can be called and
+used.
+**** Networking.
+Emscripten supports libc networking functions but you must limit yourself to
+asynchronous (non-blocking) operations. This is required because the underlying
+JavaScript networking functions are asynchronous.
+**** File Systems.
+Emscripten supports libc file system functions and C/C++ code can be written in the normal way.
+Code run in a browser environment is sandboxed, and does not have direct access
+to the local file system. Instead, Emscripten creates a virtual file system
+that may be preloaded with data or linked to URLs for lazy loading. This
+affects when synchronous file system functions can be called and how a project
+is compiled. 
+**** Application Main Loop.
+The browser event model uses co-operative multitasking Å\ each event has a
+ÅgturnÅh to run, and must then return control to the browser event loop so that
+other events can be processed. A common cause of HTML pages hanging is
+JavaScript that does not complete and return control to the browser.
+*** 
