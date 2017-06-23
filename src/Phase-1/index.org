@@ -8,7 +8,7 @@
 * Phase 1 - Converting C to JavaScript
 C ( or rather =clang= generated llvm ) can be converted to javascript with the
 help of emscripten
-** Emscripten
+** Emscripten Description
 Emscripten allows for virtually zero hassle-porting of c to javascript.
 It has few limitations though
 *** Emscripten Limitations
@@ -56,4 +56,98 @@ The browser event model uses co-operative multitasking Å\ each event has a
 ÅgturnÅh to run, and must then return control to the browser event loop so that
 other events can be processed. A common cause of HTML pages hanging is
 JavaScript that does not complete and return control to the browser.
-*** 
+** Emscripten Examples
+Here are a few examples to demonstrate emscripten 
+*** A simple hello world example
+Hello World!    
+#+NAME hello_world
+#+BEGIN_SRC c
+
+#include<stdio.h>
+ 
+int main() {
+printf("Hello People!\n");
+return 0;
+}
+
+#+END_SRC
+
+Corresponding compilation code 
+=emcc hello_world.c -o hello_world.html=
+*** A simple hello world with custom input 
+A hello world program that asks you for your name
+
+#+NAME hello_world_name
+#+BEGIN_SRC c
+#include<stdio.h>
+
+int main() {
+
+char name[20];
+scanf("%s\n",name);
+printf("hello %s\n",name);
+
+return 0;
+}
+
+#+END_SRC
+
+command to compile the source :
+=emcc hello_world_name.c -o hello_world_test.html=
+*** A simple graphics Demonstration
+We'll draw a simple cube on the screen
+#+NAME graphics
+#+BEGIN_SRC c
+
+#include <stdio.h>
+#include <SDL/SDL.h>
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
+int main(int argc, char** argv) {
+  printf("hello, world!\n");
+
+  SDL_Init(SDL_INIT_VIDEO);
+  SDL_Surface *screen = SDL_SetVideoMode(256, 256, 32, SDL_SWSURFACE);
+
+#ifdef TEST_SDL_LOCK_OPTS
+  EM_ASM("SDL.defaults.copyOnLock = false; SDL.defaults.discardOnLock = true; SDL.defaults.opaqueFrontBuffer = false;");
+#endif
+
+  if (SDL_MUSTLOCK(screen)) SDL_LockSurface(screen);
+  for (int i = 0; i < 256; i++) {
+    for (int j = 0; j < 256; j++) {
+#ifdef TEST_SDL_LOCK_OPTS
+      // Alpha behaves like in the browser, so write proper opaque pixels.
+      int alpha = 255;
+#else
+      // To emulate native behavior with blitting to screen, alpha component is ignored. Test that it is so by outputting
+      // data (and testing that it does get discarded)
+      int alpha = (i+j) % 255;
+#endif
+      *((Uint32*)screen->pixels + i * 256 + j) = SDL_MapRGBA(screen->format, i, j, 255-i, alpha);
+    }
+  }
+  if (SDL_MUSTLOCK(screen)) SDL_UnlockSurface(screen);
+  SDL_Flip(screen);
+
+  printf("you should see a smoothly-colored square - no sharp lines but the square borders!\n");
+  printf("and here is some text that should be HTML-friendly: amp: |&| double-quote: |\"| quote: |'| less-than, greater-than, html-like tags: |<cheez></cheez>|\nanother line.\n");
+
+  SDL_Quit();
+
+  return 0;
+}
+
+#+END_SRC
+
+code to compile it in c:
+=gcc graphics.c -lSDL=
+
+code to compile it in JavaScript:
+=emcc graphics.c -o graphics.html=
+*** A simple program to read from a file
+
+    
