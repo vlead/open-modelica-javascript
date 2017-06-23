@@ -149,5 +149,15 @@ code to compile it in c:
 code to compile it in JavaScript:
 =emcc graphics.c -o graphics.html=
 *** A simple program to read from a file
+** tangling code
+#+BEGIN_SRC c :eval no :noweb yes :tangle hello_world.c
+<<hello_world>> 
+#+END_SRC
 
-    
+#+BEGIN_SRC c :eval no :noweb yes :tangle hello_world_name.c
+<<hello_world_name>> 
+#+END_SRC
+
+#+BEGIN_SRC c :eval no :noweb yes :tangle graphics.c
+<<graphics>> 
+#+END_SRC
