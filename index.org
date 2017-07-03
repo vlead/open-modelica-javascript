@@ -1,3 +1,0 @@
-#+TITLE: compiling OpenModelica Models to JavaScript
-#+AUTHOR: Keshav Krishnamurti
-#+DATE: [2017-06-15 Thu]
